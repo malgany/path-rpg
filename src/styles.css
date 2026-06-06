@@ -78,6 +78,7 @@ button:hover {
 }
 
 #warpCanvas,
+#decorCanvas,
 #guideCanvas {
   position: absolute;
   inset: 0;
@@ -85,6 +86,7 @@ button:hover {
   height: 100%;
 }
 
+#decorCanvas,
 #guideCanvas {
   pointer-events: none;
 }

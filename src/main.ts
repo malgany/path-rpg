@@ -16,6 +16,7 @@ app.innerHTML = `
     <section class="stage" aria-label="Área de visualização da distorção">
       <div id="phaser-root" class="phaser-runtime" aria-hidden="true"></div>
       <canvas id="warpCanvas"></canvas>
+      <canvas id="decorCanvas" aria-hidden="true"></canvas>
       <canvas id="guideCanvas" aria-hidden="true"></canvas>
       <div class="stage-hud">
         <span id="phaseLabel">Quadro 1</span>
@@ -94,7 +95,9 @@ function required(selector) {
 }
 
 const canvas = required("#warpCanvas");
+const decorCanvas = required("#decorCanvas");
 const guideCanvas = required("#guideCanvas");
+const decor = decorCanvas.getContext("2d");
 const guide = guideCanvas.getContext("2d");
 const gl = canvas.getContext("webgl", { alpha: true, antialias: true });
 
@@ -131,7 +134,7 @@ const state = {
 
 const mesh = createMesh(96, 64);
 
-if (!guide || !gl) {
+if (!decor || !guide || !gl) {
   document.body.innerHTML = "<p style='padding:24px'>WebGL nao esta disponivel neste navegador.</p>";
   throw new Error("WebGL unavailable");
 }
@@ -274,6 +277,7 @@ function tick(delta) {
 
   if (state.needsRender) {
     render();
+    drawDecor();
     drawGuide();
     updateLabels();
     state.needsRender = false;
@@ -336,12 +340,16 @@ function resize() {
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
+    decorCanvas.width = width;
+    decorCanvas.height = height;
     guideCanvas.width = width;
     guideCanvas.height = height;
   }
 
   canvas.style.width = `${rect.width}px`;
   canvas.style.height = `${rect.height}px`;
+  decorCanvas.style.width = `${rect.width}px`;
+  decorCanvas.style.height = `${rect.height}px`;
   guideCanvas.style.width = `${rect.width}px`;
   guideCanvas.style.height = `${rect.height}px`;
 
@@ -384,6 +392,89 @@ function render() {
   gl.uniform2f(locations.textureOffset, state.textureOffset[0], state.textureOffset[1]);
 
   gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+}
+
+function drawDecor() {
+  const w = decorCanvas.width;
+  const h = decorCanvas.height;
+  decor.clearRect(0, 0, w, h);
+
+  const treeRows = [
+    { y: 0.18, left: 0.14, right: 0.86, scale: 0.34 },
+    { y: 0.25, left: 0.08, right: 0.92, scale: 0.42 },
+    { y: 0.34, left: 0.19, right: 0.81, scale: 0.52 },
+    { y: 0.45, left: 0.1, right: 0.9, scale: 0.68 },
+    { y: 0.59, left: 0.2, right: 0.8, scale: 0.86 },
+  ];
+
+  treeRows.forEach((tree, index) => {
+    const sway = Math.sin(index * 1.7 + Number(ui.phase.value) * Math.PI * 2) * 0.012;
+    drawPineTree(tree.left + sway, tree.y, tree.scale, index % 2 === 0 ? -1 : 1);
+    drawPineTree(tree.right - sway, tree.y + 0.015, tree.scale * 1.05, index % 2 === 0 ? 1 : -1);
+  });
+}
+
+function drawPineTree(xRatio, yRatio, scale, lean) {
+  const w = decorCanvas.width;
+  const h = decorCanvas.height;
+  const x = xRatio * w;
+  const groundY = yRatio * h;
+  const size = Math.max(20, Math.min(w, h) * 0.22 * scale);
+  const trunkW = size * 0.16;
+  const trunkH = size * 0.34;
+  const topY = groundY - size * 1.35;
+  const trunkX = x - trunkW / 2 + lean * size * 0.03;
+
+  decor.save();
+  decor.lineJoin = "round";
+  decor.lineCap = "round";
+
+  decor.fillStyle = "rgba(20, 12, 9, 0.28)";
+  decor.beginPath();
+  decor.ellipse(x, groundY + size * 0.08, size * 0.42, size * 0.12, 0, 0, Math.PI * 2);
+  decor.fill();
+
+  decor.fillStyle = "#4b2c19";
+  decor.strokeStyle = "#1b120d";
+  decor.lineWidth = Math.max(2, size * 0.035);
+  decor.beginPath();
+  decor.rect(trunkX, groundY - trunkH, trunkW, trunkH);
+  decor.fill();
+  decor.stroke();
+
+  const tiers = [
+    { y: topY + size * 0.28, width: size * 0.62 },
+    { y: topY + size * 0.55, width: size * 0.86 },
+    { y: topY + size * 0.84, width: size * 1.08 },
+    { y: topY + size * 1.1, width: size * 1.24 },
+  ];
+
+  tiers.forEach((tier, index) => {
+    const tierX = x + lean * size * 0.035 * index;
+    decor.fillStyle = index % 2 === 0 ? "#145323" : "#0f431d";
+    decor.strokeStyle = "#071d0d";
+    decor.lineWidth = Math.max(2, size * 0.04);
+    decor.beginPath();
+    decor.moveTo(tierX, tier.y - size * 0.22);
+    decor.lineTo(tierX - tier.width * 0.5, tier.y + size * 0.22);
+    decor.lineTo(tierX - tier.width * 0.2, tier.y + size * 0.18);
+    decor.lineTo(tierX - tier.width * 0.32, tier.y + size * 0.32);
+    decor.lineTo(tierX, tier.y + size * 0.22);
+    decor.lineTo(tierX + tier.width * 0.32, tier.y + size * 0.32);
+    decor.lineTo(tierX + tier.width * 0.2, tier.y + size * 0.18);
+    decor.lineTo(tierX + tier.width * 0.5, tier.y + size * 0.22);
+    decor.closePath();
+    decor.fill();
+    decor.stroke();
+  });
+
+  decor.fillStyle = "rgba(110, 184, 85, 0.55)";
+  decor.beginPath();
+  decor.arc(x - size * 0.14, topY + size * 0.54, size * 0.055, 0, Math.PI * 2);
+  decor.arc(x + size * 0.18, topY + size * 0.83, size * 0.045, 0, Math.PI * 2);
+  decor.fill();
+
+  decor.restore();
 }
 
 function drawGuide() {
