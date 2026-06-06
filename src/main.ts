@@ -4,6 +4,18 @@ import "./styles.css";
 
 const ROAD_HORIZON_ARC = 0.35;
 const ROAD_HORIZON_ROUGHNESS = 0.28;
+const ROADSIDE_TREES = [
+  { depth: 0.08, x: 0.2, side: -1, lean: -1, size: 0.9 },
+  { depth: 0.12, x: 0.8, side: 1, lean: 1, size: 0.88 },
+  { depth: 0.23, x: 0.14, side: -1, lean: 1, size: 0.96 },
+  { depth: 0.28, x: 0.86, side: 1, lean: -1, size: 1 },
+  { depth: 0.42, x: 0.19, side: -1, lean: -1, size: 1.04 },
+  { depth: 0.48, x: 0.82, side: 1, lean: 1, size: 1.08 },
+  { depth: 0.63, x: 0.12, side: -1, lean: 1, size: 1.15 },
+  { depth: 0.68, x: 0.9, side: 1, lean: -1, size: 1.12 },
+  { depth: 0.82, x: 0.22, side: -1, lean: -1, size: 1.22 },
+  { depth: 0.87, x: 0.78, side: 1, lean: 1, size: 1.18 },
+];
 
 const app = document.querySelector("#app");
 
@@ -399,27 +411,50 @@ function drawDecor() {
   const h = decorCanvas.height;
   decor.clearRect(0, 0, w, h);
 
-  const treeRows = [
-    { y: 0.18, left: 0.14, right: 0.86, scale: 0.34 },
-    { y: 0.25, left: 0.08, right: 0.92, scale: 0.42 },
-    { y: 0.34, left: 0.19, right: 0.81, scale: 0.52 },
-    { y: 0.45, left: 0.1, right: 0.9, scale: 0.68 },
-    { y: 0.59, left: 0.2, right: 0.8, scale: 0.86 },
-  ];
+  const phase = Number(ui.phase.value);
+  const bend = Number(ui.bend.value);
+  const compress = Number(ui.compress.value);
+  const spread = Number(ui.spread.value);
+  const scroll = state.textureOffset[1];
 
-  treeRows.forEach((tree, index) => {
-    const sway = Math.sin(index * 1.7 + Number(ui.phase.value) * Math.PI * 2) * 0.012;
-    drawPineTree(tree.left + sway, tree.y, tree.scale, index % 2 === 0 ? -1 : 1);
-    drawPineTree(tree.right - sway, tree.y + 0.015, tree.scale * 1.05, index % 2 === 0 ? 1 : -1);
-  });
+  ROADSIDE_TREES.map((tree, index) => {
+    const depth = wrapUnit(tree.depth + scroll);
+    const roadHalf = 0.055 + spread * 0.045 + (0.17 + spread * 0.12 - (0.055 + spread * 0.045)) * Math.pow(depth, 0.72);
+    const sideClearance = 0.08 + depth * 0.05;
+    const minX = roadHalf + sideClearance;
+    const grassX = tree.side < 0 ? Math.min(tree.x, 0.5 - minX) : Math.max(tree.x, 0.5 + minX);
+    const sway = Math.sin(index * 1.7 + phase * Math.PI * 2) * 0.008 * (0.5 + depth);
+    const anchor = warpPoint(
+      [grassX + sway, depth],
+      phase,
+      bend,
+      compress,
+      spread,
+      state.modeIndex,
+      state.rect,
+    );
+    const screen = toScreen(anchor, w, h);
+    const perspectiveScale = 0.24 + Math.pow(depth, 1.35) * 1.18;
+
+    return {
+      depth,
+      x: screen[0],
+      y: screen[1],
+      scale: perspectiveScale * tree.size,
+      lean: tree.lean,
+    };
+  })
+    .sort((a, b) => a.depth - b.depth)
+    .forEach((tree) => {
+      if (tree.y < -h * 0.25 || tree.y > h * 1.18) return;
+      drawPineTree(tree.x, tree.y, tree.scale, tree.lean);
+    });
 }
 
-function drawPineTree(xRatio, yRatio, scale, lean) {
+function drawPineTree(x, groundY, scale, lean) {
   const w = decorCanvas.width;
   const h = decorCanvas.height;
-  const x = xRatio * w;
-  const groundY = yRatio * h;
-  const size = Math.max(20, Math.min(w, h) * 0.22 * scale);
+  const size = Math.max(18, Math.min(w, h) * 0.16 * scale);
   const trunkW = size * 0.16;
   const trunkH = size * 0.34;
   const topY = groundY - size * 1.35;
