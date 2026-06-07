@@ -4,6 +4,85 @@ import "./styles.css";
 
 const ROAD_HORIZON_ARC = 0.35;
 const ROAD_HORIZON_ROUGHNESS = 0.28;
+const ENCOUNTER_VISIBLE_RANGE = 0.16;
+const ENCOUNTER_BATTLE_DEPTH = 0.86;
+const ROAD_SCROLL_SPEED = 0.000045;
+const ENCOUNTERS_PER_COMMON_STAGE = 6;
+
+const ENEMY_SPRITES = {
+  slime_verde: {
+    idle: new URL("./assets/enemies/slime_verde_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/slime_verde_attack.webp", import.meta.url).href,
+  },
+  rato_gigante: {
+    idle: new URL("./assets/enemies/rato_gigante_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/rato_gigante_attack.webp", import.meta.url).href,
+  },
+  goblin_fraco: {
+    idle: new URL("./assets/enemies/goblin_fraco_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/goblin_fraco_attack.webp", import.meta.url).href,
+  },
+  morcego_sombrio: {
+    idle: new URL("./assets/enemies/morcego_sombrio_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/morcego_sombrio_attack.webp", import.meta.url).href,
+  },
+  aranha_floresta: {
+    idle: new URL("./assets/enemies/aranha_floresta_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/aranha_floresta_attack.webp", import.meta.url).href,
+  },
+  goblin_arqueiro: {
+    idle: new URL("./assets/enemies/goblin_arqueiro_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/goblin_arqueiro_attack.webp", import.meta.url).href,
+  },
+  lobo_selvagem: {
+    idle: new URL("./assets/enemies/lobo_selvagem_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/lobo_selvagem_attack.webp", import.meta.url).href,
+  },
+  xama_goblin: {
+    idle: new URL("./assets/enemies/xama_goblin_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/xama_goblin_attack.webp", import.meta.url).href,
+  },
+  guardiao_raizes: {
+    idle: new URL("./assets/enemies/guardiao_raizes_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/guardiao_raizes_attack.webp", import.meta.url).href,
+  },
+  rei_goblin_floresta: {
+    idle: new URL("./assets/enemies/rei_goblin_floresta_idle.webp", import.meta.url).href,
+    attack: new URL("./assets/enemies/rei_goblin_floresta_attack.webp", import.meta.url).href,
+  },
+};
+
+const ACT1_ENEMIES = {
+  slime_verde: { name: "Slime Verde", hp: 5, size: 0.86, sprites: ENEMY_SPRITES.slime_verde },
+  rato_gigante: { name: "Rato Gigante", hp: 6, size: 0.92, sprites: ENEMY_SPRITES.rato_gigante },
+  goblin_fraco: { name: "Goblin Fraco", hp: 6, size: 0.9, sprites: ENEMY_SPRITES.goblin_fraco },
+  morcego_sombrio: { name: "Morcego Sombrio", hp: 5, size: 0.82, hover: true, sprites: ENEMY_SPRITES.morcego_sombrio },
+  aranha_floresta: { name: "Aranha da Floresta", hp: 7, size: 0.88, sprites: ENEMY_SPRITES.aranha_floresta },
+  goblin_arqueiro: { name: "Goblin Arqueiro", hp: 7, size: 0.92, sprites: ENEMY_SPRITES.goblin_arqueiro },
+  lobo_selvagem: { name: "Lobo Selvagem", hp: 8, size: 0.95, sprites: ENEMY_SPRITES.lobo_selvagem },
+  xama_goblin: { name: "Xama Goblin", hp: 8, size: 0.96, sprites: ENEMY_SPRITES.xama_goblin },
+  guardiao_raizes: { name: "Guardiao de Raizes", hp: 10, size: 1.1, sprites: ENEMY_SPRITES.guardiao_raizes },
+  rei_goblin_floresta: {
+    name: "Rei Goblin da Floresta",
+    hp: 26,
+    size: 1.38,
+    boss: true,
+    sprites: ENEMY_SPRITES.rei_goblin_floresta,
+  },
+};
+
+const ACT1_PHASES = [
+  { id: "1-1", enemies: ["slime_verde", "rato_gigante"] },
+  { id: "1-2", enemies: ["slime_verde", "rato_gigante", "goblin_fraco"] },
+  { id: "1-3", enemies: ["slime_verde", "rato_gigante", "goblin_fraco"] },
+  { id: "1-4", enemies: ["rato_gigante", "goblin_fraco", "morcego_sombrio"] },
+  { id: "1-5", enemies: ["goblin_fraco", "morcego_sombrio", "aranha_floresta"] },
+  { id: "1-6", enemies: ["morcego_sombrio", "aranha_floresta", "goblin_arqueiro"] },
+  { id: "1-7", enemies: ["aranha_floresta", "goblin_arqueiro", "lobo_selvagem"] },
+  { id: "1-8", enemies: ["goblin_arqueiro", "lobo_selvagem", "xama_goblin"] },
+  { id: "1-9", enemies: ["lobo_selvagem", "xama_goblin", "guardiao_raizes"] },
+  { id: "1-10", boss: "rei_goblin_floresta" },
+];
 const ROADSIDE_TREES = [
   { depth: 0.08, x: 0.2, side: -1, lean: -1, size: 0.9 },
   { depth: 0.12, x: 0.8, side: 1, lean: 1, size: 0.88 },
@@ -30,9 +109,19 @@ app.innerHTML = `
       <canvas id="warpCanvas"></canvas>
       <canvas id="decorCanvas" aria-hidden="true"></canvas>
       <canvas id="guideCanvas" aria-hidden="true"></canvas>
-      <div class="stage-hud">
-        <span id="phaseLabel">Quadro 1</span>
-        <span id="modeLabel">Estrada</span>
+      <div id="enemyLayer" class="enemy-layer" aria-hidden="true">
+        <div id="enemySprite" class="enemy-sprite">
+          <div class="boss-aura" aria-hidden="true"></div>
+          <img id="enemyImage" alt="" draggable="false" />
+          <div class="enemy-health" aria-hidden="true"><span id="enemyHealthFill"></span></div>
+        </div>
+      </div>
+      <div id="stageHud" class="stage-hud">1-1</div>
+      <div id="transitionOverlay" class="transition-overlay" aria-live="polite" aria-hidden="true">
+        <div class="transition-copy">
+          <span id="transitionFrom" class="transition-from">1-1</span>
+          <span id="transitionTo" class="transition-to">1-2</span>
+        </div>
       </div>
     </section>
 
@@ -121,8 +210,14 @@ const ui = {
   spread: required("#spread"),
   animate: required("#animate"),
   showGuides: required("#showGuides"),
-  phaseLabel: required("#phaseLabel"),
-  modeLabel: required("#modeLabel"),
+  enemyLayer: required("#enemyLayer"),
+  enemySprite: required("#enemySprite"),
+  enemyImage: required("#enemyImage"),
+  enemyHealthFill: required("#enemyHealthFill"),
+  stageHud: required("#stageHud"),
+  transitionOverlay: required("#transitionOverlay"),
+  transitionFrom: required("#transitionFrom"),
+  transitionTo: required("#transitionTo"),
   debugTabs: [...document.querySelectorAll("[data-debug-panel]")],
   debugPanels: [...document.querySelectorAll("[data-panel]")],
 };
@@ -142,6 +237,19 @@ const state = {
   },
   needsRender: true,
   started: false,
+};
+
+const game = {
+  phaseIndex: 0,
+  phase: ACT1_PHASES[0],
+  encounters: [],
+  travel: 0,
+  activeEncounter: null,
+  battle: false,
+  transitioning: false,
+  completed: false,
+  attackTimer: 0,
+  hitTimer: 0,
 };
 
 const mesh = createMesh(96, 64);
@@ -224,6 +332,8 @@ function startApp() {
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   wireUi();
+  preloadEnemySprites();
+  resetPhase(0);
   setTextureSource(createRoadSource());
   syncDebugVisibility();
 }
@@ -242,7 +352,11 @@ function wireUi() {
     requestRender();
   });
 
+  ui.enemySprite.addEventListener("pointerdown", attackCurrentEnemy);
+
   canvas.addEventListener("pointerdown", (event) => {
+    if (!document.body.classList.contains("debug-enabled")) return;
+
     state.drag.active = true;
     state.drag.pointerId = event.pointerId;
     state.drag.lastX = event.clientX;
@@ -281,8 +395,12 @@ function wireUi() {
 }
 
 function tick(delta) {
-  if (ui.animate.checked) {
-    const next = (Number(ui.phase.value) + Math.min(40, delta || 16) * 0.00024) % 1;
+  const frameDelta = Math.min(40, delta || 16);
+
+  updateGame(frameDelta);
+
+  if (ui.animate.checked && document.body.classList.contains("debug-enabled")) {
+    const next = (Number(ui.phase.value) + frameDelta * 0.00024) % 1;
     ui.phase.value = next.toFixed(3);
     state.needsRender = true;
   }
@@ -291,21 +409,14 @@ function tick(delta) {
     render();
     drawDecor();
     drawGuide();
-    updateLabels();
     state.needsRender = false;
   }
+
+  updateEnemyLayer();
 }
 
 function requestRender() {
   state.needsRender = true;
-}
-
-function updateLabels() {
-  const phase = Number(ui.phase.value);
-  const frame = phase < 0.18 ? "Quadro 1" : phase < 0.64 ? "Quadro 2" : "Quadro 3";
-
-  ui.phaseLabel.textContent = frame;
-  ui.modeLabel.textContent = "Estrada";
 }
 
 function setDebugPanel(panelName) {
@@ -327,6 +438,241 @@ function endDrag(event) {
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
   }
+}
+
+function preloadEnemySprites() {
+  Object.values(ACT1_ENEMIES).forEach((enemy) => {
+    [enemy.sprites.idle, enemy.sprites.attack].forEach((src) => {
+      const image = new Image();
+      image.src = src;
+    });
+  });
+}
+
+function resetPhase(phaseIndex) {
+  game.phaseIndex = phaseIndex;
+  game.phase = ACT1_PHASES[phaseIndex];
+  game.encounters = createPhaseEncounters(game.phase);
+  game.travel = 0;
+  game.activeEncounter = null;
+  game.battle = false;
+  game.completed = false;
+  game.attackTimer = 0;
+  game.hitTimer = 0;
+  state.textureOffset[1] = 0;
+  ui.stageHud.textContent = game.phase.id;
+  ui.stage.classList.remove("in-battle");
+  hideEnemy();
+  requestRender();
+}
+
+function createPhaseEncounters(phase) {
+  if (phase.boss) {
+    return [
+      {
+        key: phase.boss,
+        at: 0.72,
+        lane: 0,
+        boss: true,
+        defeated: false,
+      },
+    ];
+  }
+
+  return Array.from({ length: ENCOUNTERS_PER_COMMON_STAGE }, (_, index) => {
+    const key = phase.enemies[index % phase.enemies.length];
+    const spacing = 0.74 / ENCOUNTERS_PER_COMMON_STAGE;
+    const at = 0.12 + spacing * index + (index % 2) * 0.018;
+
+    return {
+      key,
+      at,
+      lane: [-0.035, 0.028, 0][index % 3],
+      boss: false,
+      defeated: false,
+    };
+  });
+}
+
+function updateGame(delta) {
+  game.attackTimer = Math.max(0, game.attackTimer - delta);
+  game.hitTimer = Math.max(0, game.hitTimer - delta);
+
+  if (game.transitioning || game.completed) return;
+
+  if (!game.battle) {
+    game.travel += delta * ROAD_SCROLL_SPEED;
+    state.textureOffset[1] = wrapUnit(game.travel * 2.25);
+    state.needsRender = true;
+  }
+
+  const visibleEncounter = getVisibleEncounter();
+
+  if (!game.battle && visibleEncounter) {
+    const approach = getEncounterApproach(visibleEncounter);
+    if (approach >= 1) {
+      startBattle(visibleEncounter);
+    }
+  }
+
+  if (!game.battle && !visibleEncounter && game.travel >= 1) {
+    startPhaseTransition();
+  }
+}
+
+function getVisibleEncounter() {
+  if (game.activeEncounter) return game.activeEncounter;
+
+  return game.encounters.find((encounter) => {
+    if (encounter.defeated) return false;
+    const distance = encounter.at - game.travel;
+    return distance <= ENCOUNTER_VISIBLE_RANGE && distance >= -0.04;
+  });
+}
+
+function getEncounterApproach(encounter) {
+  const distance = encounter.at - game.travel;
+  return clamp(1 - distance / ENCOUNTER_VISIBLE_RANGE, 0, 1);
+}
+
+function startBattle(encounter) {
+  const enemy = ACT1_ENEMIES[encounter.key];
+  game.activeEncounter = encounter;
+  game.battle = true;
+  game.attackTimer = 0;
+  game.hitTimer = 0;
+  encounter.hp = enemy.hp;
+  encounter.maxHp = enemy.hp;
+  ui.stage.classList.add("in-battle");
+  requestRender();
+}
+
+function attackCurrentEnemy(event) {
+  if (!game.battle || !game.activeEncounter || game.transitioning) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  game.activeEncounter.hp = Math.max(0, game.activeEncounter.hp - 1);
+  game.attackTimer = 170;
+  game.hitTimer = 110;
+
+  if (game.activeEncounter.hp <= 0) {
+    defeatCurrentEnemy();
+  }
+}
+
+function defeatCurrentEnemy() {
+  const defeated = game.activeEncounter;
+  if (!defeated) return;
+
+  defeated.defeated = true;
+  game.activeEncounter = null;
+  game.battle = false;
+  game.attackTimer = 0;
+  game.hitTimer = 0;
+  ui.stage.classList.remove("in-battle");
+  hideEnemy();
+
+  if (defeated.boss) {
+    startPhaseTransition();
+  }
+}
+
+function updateEnemyLayer() {
+  const encounter = getVisibleEncounter();
+
+  if (!encounter || game.transitioning || game.completed) {
+    hideEnemy();
+    return;
+  }
+
+  const enemy = ACT1_ENEMIES[encounter.key];
+  const rect = canvas.getBoundingClientRect();
+  const dpr = canvas.width / Math.max(1, rect.width);
+  const phase = Number(ui.phase.value);
+  const bend = Number(ui.bend.value);
+  const compress = Number(ui.compress.value);
+  const spread = Number(ui.spread.value);
+  const approach = game.battle ? 1 : getEncounterApproach(encounter);
+  const depth = game.battle ? ENCOUNTER_BATTLE_DEPTH : 0.08 + approach * 0.78;
+  const lane = game.battle ? 0 : encounter.lane;
+  const anchor = warpPoint([0.5 + lane, depth], phase, bend, compress, spread, state.modeIndex, state.rect);
+  const screen = toScreen(anchor, canvas.width, canvas.height);
+  const cssX = screen[0] / dpr;
+  const cssY = screen[1] / dpr;
+  const baseScale = 0.06 + Math.pow(depth, 1.55) * (encounter.boss ? 0.58 : 0.42);
+  const hoverOffset = enemy.hover ? rect.height * (0.04 + depth * 0.05) : 0;
+  const height = Math.min(
+    rect.height * (encounter.boss ? 0.72 : 0.52),
+    Math.max(42, rect.height * baseScale * enemy.size),
+  );
+  const isAttacking = game.attackTimer > 0 && game.battle;
+
+  ui.enemyImage.src = isAttacking ? enemy.sprites.attack : enemy.sprites.idle;
+  ui.enemySprite.style.left = `${cssX}px`;
+  ui.enemySprite.style.top = `${cssY - hoverOffset}px`;
+  ui.enemySprite.style.height = `${height}px`;
+  ui.enemySprite.classList.toggle("visible", true);
+  ui.enemySprite.classList.toggle("battle", game.battle);
+  ui.enemySprite.classList.toggle("boss", Boolean(encounter.boss));
+  ui.enemySprite.classList.toggle("hit", game.hitTimer > 0);
+  ui.enemyLayer.setAttribute("aria-hidden", "false");
+
+  if (game.battle) {
+    const hp = Math.max(0, encounter.hp ?? enemy.hp);
+    const maxHp = Math.max(1, encounter.maxHp ?? enemy.hp);
+    ui.enemyHealthFill.style.width = `${(hp / maxHp) * 100}%`;
+  } else {
+    ui.enemyHealthFill.style.width = "100%";
+  }
+}
+
+function hideEnemy() {
+  ui.enemySprite.classList.remove("visible", "battle", "boss", "hit");
+  ui.enemyLayer.setAttribute("aria-hidden", "true");
+}
+
+function startPhaseTransition() {
+  if (game.transitioning) return;
+
+  const currentId = game.phase.id;
+  const nextIndex = game.phaseIndex + 1;
+  const nextPhase = ACT1_PHASES[nextIndex];
+
+  game.transitioning = true;
+  game.battle = false;
+  game.activeEncounter = null;
+  ui.stage.classList.remove("in-battle");
+  hideEnemy();
+
+  ui.transitionFrom.textContent = currentId;
+  ui.transitionTo.textContent = nextPhase ? nextPhase.id : "Ato 1 completo";
+  ui.transitionOverlay.classList.remove("show-next", "complete");
+  ui.transitionOverlay.classList.add("active");
+  ui.transitionOverlay.setAttribute("aria-hidden", "false");
+
+  window.setTimeout(() => {
+    ui.transitionOverlay.classList.add("show-next");
+  }, 650);
+
+  window.setTimeout(() => {
+    if (nextPhase) {
+      resetPhase(nextIndex);
+    } else {
+      game.completed = true;
+      ui.transitionOverlay.classList.add("complete");
+    }
+  }, 1350);
+
+  window.setTimeout(() => {
+    if (!nextPhase) return;
+
+    game.transitioning = false;
+    ui.transitionOverlay.classList.remove("active", "show-next");
+    ui.transitionOverlay.setAttribute("aria-hidden", "true");
+    requestRender();
+  }, 2150);
 }
 
 function setTextureSource(source) {
@@ -713,6 +1059,10 @@ function warpPoint(
 function smoothstep(edge0, edge1, value) {
   const x = Math.min(1, Math.max(0, (value - edge0) / (edge1 - edge0)));
   return x * x * (3 - 2 * x);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function wrapUnit(value) {
