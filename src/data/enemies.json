@@ -1,0 +1,12 @@
+{
+  "slime_verde": { "hp": 5, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "rato_gigante": { "hp": 6, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "goblin_fraco": { "hp": 6, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "morcego_sombrio": { "hp": 5, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "aranha_floresta": { "hp": 7, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "goblin_arqueiro": { "hp": 7, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "lobo_selvagem": { "hp": 8, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "xama_goblin": { "hp": 8, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "guardiao_raizes": { "hp": 10, "attackCooldownMs": 2000, "attackDamage": 6 },
+  "rei_goblin_floresta": { "hp": 26, "attackCooldownMs": 2000, "attackDamage": 6 }
+}

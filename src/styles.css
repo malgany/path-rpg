@@ -66,10 +66,16 @@ button:hover {
   cursor: grab;
   touch-action: none;
   background:
+    radial-gradient(circle at 25% 20%, rgba(40, 184, 90, 0.14), transparent 34%),
+    #10181b;
+}
+
+.debug-enabled .stage {
+  background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     radial-gradient(circle at 25% 20%, rgba(40, 184, 90, 0.14), transparent 34%),
-    #14171c;
+    #10181b;
   background-size: 42px 42px, 42px 42px, auto, auto;
 }
 
@@ -87,11 +93,94 @@ button:hover {
   inset: 0;
 }
 
+.background-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.background-layer {
+  position: absolute;
+  left: 50%;
+  display: block;
+  max-width: none;
+  transform: translateX(-50%);
+  user-select: none;
+  image-rendering: pixelated;
+}
+
+.background-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, #1ea7f2 0%, #29baf6 45%, #62d2f5 100%);
+}
+
+.background-moving-clouds {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: min(35vh, 288px);
+  opacity: 0.9;
+  background-image: var(--clouds-image);
+  background-repeat: repeat-x;
+  background-size: auto 78%;
+  background-position: -42vw 0;
+  image-rendering: pixelated;
+  animation: clouds-drift 95s linear infinite;
+}
+
+.background-mountains {
+  z-index: 2;
+  bottom: var(--mountain-bottom, -18%);
+  width: 100%;
+  opacity: 0.74;
+  filter: brightness(1.18) saturate(0.92);
+  will-change: bottom;
+}
+
+.background-castle-hill {
+  z-index: 3;
+  bottom: var(--hill-bottom, -118%);
+  width: clamp(260px, 70vw, 460px);
+  opacity: 0.96;
+  will-change: bottom;
+}
+
+@keyframes clouds-drift {
+  from {
+    background-position: -42vw 0;
+  }
+
+  to {
+    background-position: calc(-42vw + 900px) 0;
+  }
+}
+
 #warpCanvas,
 #decorCanvas,
 #guideCanvas {
   width: 100%;
   height: 100%;
+}
+
+#warpCanvas {
+  z-index: 1;
+}
+
+#decorCanvas {
+  z-index: 2;
+}
+
+#guideCanvas {
+  z-index: 5;
 }
 
 #decorCanvas,
@@ -108,6 +197,8 @@ button:hover {
   position: absolute;
   display: none;
   height: 160px;
+  --enemy-shadow-width: 72px;
+  --enemy-shadow-height: 14px;
   transform: translate(-50%, -100%);
   transform-origin: 50% 100%;
   pointer-events: none;
@@ -143,6 +234,24 @@ button:hover {
     boss-pulse 1.8s ease-in-out infinite;
 }
 
+.enemy-ground-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  z-index: 1;
+  display: none;
+  width: var(--enemy-shadow-width);
+  height: var(--enemy-shadow-height);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.24) 48%, transparent 72%);
+  transform: translateX(-50%);
+  transform-origin: center;
+}
+
+.enemy-sprite.grounded .enemy-ground-shadow {
+  display: block;
+}
+
 .enemy-sprite img {
   position: relative;
   z-index: 2;
@@ -173,32 +282,103 @@ button:hover {
   opacity: 1;
 }
 
-.enemy-health {
+.attack-sword {
+  position: absolute;
+  z-index: 6;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 50% 0%;
+  image-rendering: auto;
+  will-change: left, top, transform, opacity;
+  filter:
+    drop-shadow(0 8px 7px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 8px rgba(255, 237, 154, 0.28));
+}
+
+.attack-sword.active {
+  opacity: 1;
+}
+
+.enemy-combat-bars {
   position: absolute;
   z-index: 3;
   left: 50%;
-  bottom: -18px;
   display: none;
-  width: min(72%, 220px);
-  height: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.64);
-  border-radius: 999px;
-  background: rgba(14, 18, 22, 0.74);
+  bottom: calc(100% + 10px);
+  width: min(90%, 230px);
+  gap: 3px;
   transform: translateX(-50%);
 }
 
-.enemy-sprite.battle .enemy-health {
-  display: block;
+.enemy-sprite.battle .enemy-combat-bars {
+  display: grid;
 }
 
-.enemy-health span {
+.enemy-name {
   display: block;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow:
+    1px 0 #1a100a,
+    -1px 0 #1a100a,
+    0 1px #1a100a,
+    0 -1px #1a100a,
+    0 2px 4px rgba(0, 0, 0, 0.62);
+}
+
+.combat-bar {
+  position: relative;
+  height: 9px;
+  overflow: hidden;
+  border: 2px solid #16100b;
+  border-radius: 2px;
+  background: rgba(26, 18, 13, 0.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 3px 0 rgba(0, 0, 0, 0.24);
+}
+
+.combat-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #28b85a, #f4b13d);
-  transition: width 120ms ease;
+  transition: width 140ms linear;
+}
+
+.enemy-cooldown-bar,
+.player-cooldown-bar {
+  height: 7px;
+}
+
+.enemy-cooldown-bar span,
+.player-cooldown-bar span {
+  background: linear-gradient(90deg, #1d7eff, #69d8ff);
+}
+
+.enemy-health-bar span,
+.player-health-bar span {
+  transition: width 160ms ease-out;
+}
+
+#enemyHealthLag {
+  background: #f0c531;
+}
+
+#enemyHealthFill,
+#playerHealthFill {
+  background: linear-gradient(90deg, #b91724, #f03732);
+}
+
+#playerHealthLag {
+  background: #f4f0e0;
 }
 
 .stage-hud {
@@ -217,6 +397,207 @@ button:hover {
   font-weight: 800;
   letter-spacing: 0;
   pointer-events: none;
+}
+
+.player-hud {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 7;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.player-level {
+  display: grid;
+  align-self: center;
+  min-width: 48px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid #1a1109;
+  border-radius: 3px;
+  background: rgba(46, 28, 16, 0.88);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  color: #ffe8a8;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.player-bars {
+  display: grid;
+  gap: 4px;
+  align-self: center;
+  pointer-events: none;
+}
+
+.player-health-bar {
+  height: 17px;
+}
+
+#playerHealthText {
+  z-index: 3;
+  display: grid;
+  width: 100%;
+  place-items: center;
+  color: #fff7d7;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    1px 0 #1a100a,
+    -1px 0 #1a100a,
+    0 1px #1a100a,
+    0 -1px #1a100a;
+}
+
+.backpack-button {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  place-items: center;
+  border: 2px solid #1a1109;
+  border-radius: 4px;
+  background: rgba(74, 44, 22, 0.9);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 219, 150, 0.16),
+    0 5px 0 rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+  touch-action: manipulation;
+  line-height: 0;
+  transition:
+    transform 110ms ease,
+    box-shadow 110ms ease;
+}
+
+.backpack-button.pressed,
+.backpack-button:active {
+  transform: scale(1.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 219, 150, 0.18),
+    0 2px 0 rgba(0, 0, 0, 0.28);
+}
+
+.backpack-button img {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.backpack-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: none;
+  place-items: center;
+  padding: 28px;
+  background: rgba(6, 4, 3, 0.42);
+}
+
+.backpack-modal.open {
+  display: grid;
+}
+
+.backpack-panel {
+  position: relative;
+  width: min(82vw, 330px);
+  height: min(52vh, 360px);
+  border: 4px solid #241408;
+  border-radius: 3px;
+  background: #7b4b29;
+  box-shadow:
+    inset 0 0 0 3px #a36837,
+    0 16px 34px rgba(0, 0, 0, 0.42);
+}
+
+.backpack-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 2px solid #1a1008;
+  border-radius: 2px;
+  background: #3b2110;
+  color: #ffe8be;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.stage-progress {
+  position: absolute;
+  z-index: 6;
+  top: 68px;
+  right: 14px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 38px;
+  pointer-events: none;
+}
+
+.progress-boss-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.42));
+}
+
+.progress-track {
+  position: relative;
+  width: 34px;
+  height: min(48vh, 250px);
+  min-height: 170px;
+  overflow: visible;
+}
+
+.progress-dot {
+  position: absolute;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, 50%);
+  transition:
+    background 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.progress-dot.active {
+  background: #f3bd3f;
+  box-shadow:
+    0 0 0 1px rgba(96, 45, 0, 0.36),
+    0 0 8px rgba(243, 189, 63, 0.42),
+    0 2px 5px rgba(0, 0, 0, 0.32);
+}
+
+.progress-marker {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.48));
+  transform: translate(-50%, 50%) rotate(45deg);
+  transition: bottom 110ms ease-out;
 }
 
 .transition-overlay {
