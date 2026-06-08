@@ -14,6 +14,7 @@ const ENCOUNTER_RESPAWN_BUFFER = 0.018;
 const KEYBOARD_ADVANCE_SPEED = 0.00022;
 const MOUSE_WHEEL_ADVANCE = 0.00034;
 const MOUSE_WHEEL_SMOOTH_SPEED = 0.000085;
+const TOUCH_DRAG_ADVANCE = 0.00034;
 const ENCOUNTERS_PER_COMMON_STAGE = 6;
 const BACKDROP_PARALLAX_END = 0.92;
 const MOUNTAIN_BOTTOM_START = -18;
@@ -334,6 +335,7 @@ const state = {
   textureOffset: [0, 0],
   drag: {
     active: false,
+    mode: null,
     pointerId: null,
     lastX: 0,
     lastY: 0,
@@ -484,12 +486,17 @@ function wireUi() {
   });
 
   canvas.addEventListener("pointerdown", (event) => {
-    if (!document.body.classList.contains("debug-enabled")) return;
+    const debugDragEnabled = document.body.classList.contains("debug-enabled");
+    const gameDragEnabled = event.pointerType === "touch" || window.matchMedia("(max-width: 899px), (pointer: coarse)").matches;
+
+    if (!debugDragEnabled && !gameDragEnabled) return;
 
     state.drag.active = true;
+    state.drag.mode = debugDragEnabled ? "debug" : "game";
     state.drag.pointerId = event.pointerId;
     state.drag.lastX = event.clientX;
     state.drag.lastY = event.clientY;
+    event.preventDefault();
     canvas.setPointerCapture(event.pointerId);
     ui.stage.classList.add("dragging");
   });
@@ -498,18 +505,25 @@ function wireUi() {
     if (!state.drag.active || state.drag.pointerId !== event.pointerId) return;
 
     const dy = event.clientY - state.drag.lastY;
-    const planeHeight = Math.max(1, canvas.clientHeight * state.rect[1] * 0.5);
+    event.preventDefault();
 
-    if (state.mode !== "road") {
-      const dx = event.clientX - state.drag.lastX;
-      const planeWidth = Math.max(1, canvas.clientWidth * state.rect[0] * 0.5);
-      state.textureOffset[0] = wrapUnit(state.textureOffset[0] + dx / planeWidth);
+    if (state.drag.mode === "game") {
+      advanceFromDrag(dy);
+    } else {
+      const planeHeight = Math.max(1, canvas.clientHeight * state.rect[1] * 0.5);
+
+      if (state.mode !== "road") {
+        const dx = event.clientX - state.drag.lastX;
+        const planeWidth = Math.max(1, canvas.clientWidth * state.rect[0] * 0.5);
+        state.textureOffset[0] = wrapUnit(state.textureOffset[0] + dx / planeWidth);
+      }
+
+      state.textureOffset[1] = wrapUnit(state.textureOffset[1] + dy / planeHeight);
+      requestRender();
     }
 
-    state.textureOffset[1] = wrapUnit(state.textureOffset[1] + dy / planeHeight);
     state.drag.lastX = event.clientX;
     state.drag.lastY = event.clientY;
-    requestRender();
   });
 
   canvas.addEventListener("pointerup", endDrag);
@@ -521,6 +535,16 @@ function wireUi() {
       requestRender();
     });
   });
+}
+
+function advanceFromDrag(dy) {
+  if (dy <= 0 || game.battle || game.transitioning || game.completed) return;
+
+  const dragDistance = clamp(dy, 0, 220);
+  game.wheelTargetTravel = Math.min(
+    getTravelLimit(),
+    Math.max(game.wheelTargetTravel, game.travel) + dragDistance * TOUCH_DRAG_ADVANCE,
+  );
 }
 
 function handleStageWheel(event) {
@@ -604,6 +628,7 @@ function endDrag(event) {
   if (!state.drag.active || state.drag.pointerId !== event.pointerId) return;
 
   state.drag.active = false;
+  state.drag.mode = null;
   state.drag.pointerId = null;
   ui.stage.classList.remove("dragging");
 
