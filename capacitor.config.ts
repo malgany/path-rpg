@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.rpg2dmobile.web",
-  appName: "RPG 2D Mobile",
+  appName: "Path RPG",
   webDir: "dist",
   server: {
     androidScheme: "https",
