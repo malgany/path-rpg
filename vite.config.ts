@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/rpg-2d-mobile-web/",
+  base: "/",
   server: {
     host: "127.0.0.1",
     port: 4173,
